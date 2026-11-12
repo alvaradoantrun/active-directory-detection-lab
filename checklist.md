@@ -2,7 +2,7 @@ I’m building a small Active Directory lab to practice investigating Windows si
 
 ## Lab setup
 
-- [ ] Added a `.gitignore` for local scratch files before my first commit.
+- [x] Added a `.gitignore` for local scratch files before my first commit.
 - [ ] Created a VMware host-only network for my three lab VMs.
 - [ ] Created `WAZUH01` on Ubuntu with 4 vCPUs, 8 GB of RAM, and 50 GB of disk space.
 - [ ] Installed Wazuh and signed in to the dashboard.
