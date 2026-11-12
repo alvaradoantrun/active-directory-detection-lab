@@ -1,6 +1,3 @@
-Yes. Use **Lab build checklist** as the GitHub issue title. Copy the Markdown below into the issue body. It has all 33 checkboxes from your draft.
-
-```markdown
 I’m building a small Active Directory lab to practice investigating Windows sign-ins and process activity in Wazuh. I’ll use four lab cases to test my detections against normal activity and document how I reached each verdict.
 
 ## Lab setup
@@ -65,4 +62,3 @@ I’m building a small Active Directory lab to practice investigating Windows si
 - [ ] Wrote four short case reports in `reports/` with a timeline, evidence, verdict, confidence, and next action.
 - [ ] Reviewed my staged files for secrets and personal details before publishing.
 - [ ] Added a short findings summary and links to my reports, rules, test results, and sanitized evidence.
-```
