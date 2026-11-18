@@ -25,6 +25,12 @@ After repeated authentication failures, Wazuh triggered its built-in correlation
 
 The detection demonstrated Wazuh's ability to correlate repeated authentication failures and identify behavior associated with brute-force password attacks.
 
+### Evidence 1 — Repeated Authentication Failures
+
+![Repeated failed authentication alerts in Wazuh](../screenshots/investigation-01/failed-login-alerts.png)
+
+*Figure 1: Wazuh Threat Hunting displays repeated authentication failures originating from WS01, with corresponding security events recorded by DC01. The events demonstrate that authentication telemetry was successfully collected from both systems.*
+
 ---
 
 ## 2. Relevant Security Events
@@ -42,6 +48,28 @@ The workstation's Event ID **4625** identified the affected account as `jcarter`
 The corresponding domain-controller authentication failures included Kerberos failure code `0x18`, indicating invalid pre-authentication information consistent with an incorrect password.
 
 The workstation events recorded `127.0.0.1` in the source IP field, reflecting the local interactive authentication context.
+
+### Evidence 2 — Windows Security Event ID 4625
+
+![Windows Event ID 4625 authentication failure details](../screenshots/investigation-01/windows-4625-details.png)
+
+*Figure 2: Detailed Windows authentication-failure telemetry collected by Wazuh. The event identifies the affected account, failed authentication status, logon type, and source workstation.*
+
+### Event Analysis
+
+**Affected User:** `LAB\jcarter`  
+**Workstation:** WS01  
+**Windows Event ID:** 4625  
+**Logon Type:** 2 — Interactive  
+**Authentication Result:** Failure  
+**Wazuh Rule:** 60122  
+**Alert Severity:** Level 5
+
+The event confirms an unsuccessful interactive logon attempt involving the targeted domain account.
+
+An individual authentication failure is not sufficient to establish a brute-force attack. However, repeated failures against the same account within a short interval can indicate password guessing or automated authentication attempts.
+
+This distinction is important because individual failed logins may occur during normal user activity, while repeated failures can warrant additional investigation.
 
 ---
 
@@ -87,7 +115,33 @@ During the simulation, Wazuh initially generated individual **Level 5 authentica
 
 After sufficient matching events were processed, Wazuh generated the **Level 10 correlation alert**.
 
-**Observed detection timestamp:** November 17, 2026, approximately 18:26:50 UTC.
+**Observed detection timestamp:** November 17, 2026, approximately 18:26:50 (Wazuh event display).
+
+### Evidence 3 — Wazuh Brute-Force Detection
+
+![Wazuh Rule 60204 multiple Windows logon failures](../screenshots/investigation-01/wazuh-rule-60204.png)
+
+*Figure 3: Wazuh's built-in Rule 60204 triggered after repeated failed authentication attempts. The Level 10 alert confirms successful correlation of multiple authentication-failure events and maps the activity to MITRE ATT&CK T1110 — Brute Force.*
+
+### Detection Significance
+
+The triggering of Rule 60204 demonstrates the difference between an individual security event and a correlated security alert.
+
+**Individual Detection:**
+
+- Windows records an unsuccessful logon.
+- Wazuh processes the security event.
+- Rule 60122 identifies the authentication failure.
+- A Level 5 alert is generated.
+
+**Correlated Detection:**
+
+- Multiple authentication failures occur within the configured time window.
+- Wazuh evaluates repeated failures using its correlation logic.
+- Rule 60204 identifies the repeated authentication-failure pattern.
+- A Level 10 alert is generated.
+
+This escalation helps distinguish isolated authentication failures from repeated behavior that may require greater scrutiny.
 
 ---
 
@@ -102,6 +156,18 @@ The investigation established the following:
 - The repeated failures satisfied Wazuh's built-in correlation conditions.
 - Rule 60204 generated a Level 10 alert identifying repeated authentication failures.
 - The alert was associated with MITRE ATT&CK technique **T1110 — Brute Force**.
+
+### Event Correlation
+
+Security events from WS01 and DC01 provided complementary authentication information.
+
+**WS01** recorded the unsuccessful interactive logon through Windows Event ID 4625.
+
+**DC01** recorded corresponding Kerberos pre-authentication failures through Windows Event ID 4771.
+
+These records helped establish that the authentication activity involved a domain account and originated from the lab workstation.
+
+The Wazuh correlation alert demonstrated that repeated authentication failures could be detected through the centralized monitoring environment.
 
 The activity was deliberately generated within an isolated VMware lab for detection validation.
 
@@ -125,8 +191,16 @@ In a production SOC environment, a comparable alert would warrant additional inv
 - Whether multiple accounts were targeted.
 - Whether successful authentication followed the failures.
 - Whether the account exhibited unusual activity after authentication.
+- Whether the activity originated from an expected device or location.
+- Whether the authentication failures were associated with an authorized test or known operational issue.
 
-A series of failed authentication attempts alone does not establish that an account was compromised.
+### Security Impact
+
+Repeated failed authentication attempts can indicate password guessing, brute-force activity, or misconfigured applications using outdated credentials.
+
+However, a series of failed authentication attempts alone does not establish that an account was compromised.
+
+The investigation did not identify a successful unauthorized authentication or subsequent malicious activity.
 
 **No successful compromise was demonstrated during this simulation.**
 
@@ -143,6 +217,12 @@ The experiment demonstrated the difference between individual authentication-fai
 Wazuh successfully escalated repeated Level 5 authentication failures into a Level 10 alert using its existing detection rule 60204.
 
 The investigation validated the lab's capability to monitor Active Directory authentication activity, correlate repeated security events, and identify behavior consistent with brute-force password attempts.
+
+The collected screenshots provide evidence of:
+
+1. Repeated authentication failures appearing in Wazuh.
+2. Windows Event ID 4625 containing authentication-failure details.
+3. Wazuh Rule 60204 generating a Level 10 correlation alert.
 
 **Final Disposition:** Closed — Authorized simulation; no malicious incident confirmed.
 
