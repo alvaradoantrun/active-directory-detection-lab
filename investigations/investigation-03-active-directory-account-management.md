@@ -1,4 +1,3 @@
-
 # Investigation 03 — Active Directory Account and Security Group Modification
 
 **Date:** November 17, 2026  
@@ -171,7 +170,13 @@ Windows recorded Event ID **4722 — A user account was enabled**.
 
 Wazuh generated a corresponding Level 8 alert.
 
-The account was successfully restored to its original enabled state.
+
+### Evidence 1 — Account Disabled and Restored
+
+![Account Disabled and Restored](../screenshots/investigation-03/ad-account-disable-restore.png)
+
+*Figure 1: PowerShell on DC01 confirms that LAB\rpatel was disabled, verified as Enabled = False, re-enabled, and verified as Enabled = True.*
+
 
 ### Additional Account Modification Event
 
@@ -204,6 +209,12 @@ Windows recorded Event ID **4727 — A security-enabled global group was created
 
 Wazuh generated a corresponding Level 5 alert.
 
+### Evidence 4 — Security-Enabled Global Group Created
+
+![Security-Enabled Global Group Created](../screenshots/investigation-03/security-group-created-4727.png)
+
+*Figure 4: DC01 Event ID 4727 triggered Wazuh Rule 60140 (Level 5) for creation of SOC-Lab-Privileged-Test. The event identifies LAB\Administrator as the actor.*
+
 **Important:** Despite its name, the test group was not assigned Domain Admin privileges or other administrative permissions. It was created solely to validate security group auditing.
 
 ### Step 2 — Add the User to the Group
@@ -217,6 +228,13 @@ Add-ADGroupMember -Identity "SOC-Lab-Privileged-Test" -Members rpatel
 Windows recorded Event ID **4728 — A member was added to a security-enabled global group**.
 
 Wazuh generated a corresponding Level 5 alert.
+
+
+### Evidence 5 — Security Group Member Added
+
+![Security Group Member Added](../screenshots/investigation-03/group-member-added-4728.png)
+
+*Figure 5: DC01 Event ID 4728 triggered Wazuh Rule 60141 (Level 5). The event identifies LAB\rpatel as the member added to SOC-Lab-Privileged-Test.*
 
 The event identified:
 
@@ -236,6 +254,12 @@ Remove-ADGroupMember -Identity "SOC-Lab-Privileged-Test" -Members rpatel -Confir
 Windows recorded Event ID **4729 — A member was removed from a security-enabled global group**.
 
 Wazuh generated a corresponding Level 5 alert.
+
+### Evidence 6 — Security Group Member Removed
+
+![Security Group Member Removed](../screenshots/investigation-03/group-member-removed-4729.png)
+
+*Figure 6: DC01 Event ID 4729 triggered Wazuh Rule 60142 (Level 5), documenting removal of LAB\rpatel from the test group.*
 
 ### Step 4 — Verify Membership Restoration
 
@@ -296,6 +320,13 @@ The alert identified:
 
 The detection confirmed that Windows auditing could identify the administrative account responsible for disabling a domain user.
 
+### Evidence 2 — Account Disabled — Event ID 4725
+
+![Account Disabled — Event ID 4725](../screenshots/investigation-03/account-disabled-event-4725.png)
+
+*Figure 2: Wazuh Rule 60111 (Level 8) records the disabling of LAB\rpatel by LAB\Administrator on DC01.*
+
+
 ### Account Enable Detection
 
 **Windows Event ID:** 4722  
@@ -310,6 +341,13 @@ The alert identified:
 - **Action:** User account enabled
 
 The detection confirmed that account reactivation was recorded separately from account disabling.
+
+### Evidence 3 — Account Enabled — Event ID 4722
+
+![Account Enabled — Event ID 4722](../screenshots/investigation-03/account-enabled-event-4722.png)
+
+*Figure 3: Wazuh Rule 60109 (Level 8) records the re-enabling of LAB\rpatel by LAB\Administrator on DC01.*
+
 
 ### Security Group Creation Detection
 
