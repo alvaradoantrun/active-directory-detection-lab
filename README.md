@@ -3,25 +3,39 @@
 
 ### Building, Monitoring, and Investigating Security Events in a Windows Active Directory Environment
 
-A hands-on cybersecurity lab designed to simulate common security events in a Windows Active Directory environment and investigate them using the Wazuh SIEM.
+A hands-on cybersecurity lab designed to simulate security-relevant activity in a Windows Active Directory environment and investigate the resulting events using the **Wazuh SIEM**.
 
 The project focuses on Windows security auditing, endpoint telemetry collection, detection validation, and SOC-style security investigations.
 
-Three controlled security scenarios were completed:
+Three controlled security investigations were completed:
 
-1. **Brute-Force Authentication Detection** — Identifying repeated failed authentication attempts through Windows Security logs and Wazuh event correlation.
-2. **PowerShell Process Discovery Detection** — Identifying discovery activity through PowerShell Script Block Logging and Wazuh detection rules.
+1. **Brute-Force Authentication Detection** — Identifying repeated failed authentication attempts using Windows Security logs and Wazuh event correlation.
+2. **PowerShell Process Discovery Detection** — Detecting endpoint discovery activity using PowerShell Script Block Logging.
 3. **Active Directory Account and Group Modification** — Monitoring account status changes and security group membership modifications.
 
-Each investigation includes the simulated activity, relevant Windows Event IDs, Wazuh detection rules, investigation findings, and an analyst assessment.
+Each investigation includes the simulated activity, relevant Windows Event IDs, Wazuh detection rules, supporting screenshots, investigation findings, and an analyst assessment.
 
-> **Project scope:** All activity was performed in an isolated VMware lab using authorized test accounts. Detection results were validated against deliberately generated events. No real-world systems were targeted.
+> **Project Scope:** All activity was performed in an isolated VMware lab using authorized test accounts. Detection results were validated against deliberately generated events. No real-world systems were targeted.
+
+---
+
+## Detection Highlight
+
+### Brute-Force Authentication Detection — Wazuh Level 10 Alert
+
+![Wazuh Rule 60204 — Multiple Windows Logon Failures](screenshots/investigation-01/wazuh-rule-60204.png)
+
+*Wazuh Rule 60204 generated a Level 10 security alert after correlating repeated failed authentication attempts against an Active Directory account. The activity was mapped to MITRE ATT&CK T1110 — Brute Force.*
+
+This investigation demonstrated the difference between individual authentication failures and correlation-based detections.
+
+**[View the Complete Brute-Force Investigation](investigations/investigation-01-brute-force-detection.md)**
 
 ---
 
 ## Project Objectives
 
-The primary objective was to build a functional security monitoring environment and practice the responsibilities of an entry-level SOC analyst.
+The primary objective was to build a functional security monitoring environment and practice the responsibilities of an entry-level Security Operations Center (SOC) analyst.
 
 Specific objectives included:
 
@@ -45,31 +59,31 @@ The lab was built using VMware Workstation and an isolated host-only network.
 ### Network Diagram
 
 ```text
-                 Physical Host
-                VMware Workstation
-                       |
-              VMnet2 — Host-Only
-               192.168.100.0/24
-                       |
-        +--------------+--------------+
-        |              |              |
-        v              v              v
-  +------------+ +------------+ +-------------+
-  |    DC01    | |    WS01    | |   SIEM01    |
-  |            | |            | |             |
-  | Windows    | | Windows 11 | | Ubuntu      |
-  | Server 2022| |            | | Server 24.04|
-  |            | | Wazuh Agent| |             |
-  | AD DS / DNS| | Sysmon     | | Wazuh SIEM   |
-  | Wazuh Agent| | PowerShell | | Manager      |
-  |            | | Logging    | | Dashboard    |
-  +------------+ +------------+ +-------------+
-        |              |              |
-  192.168.100.10 192.168.100.20 192.168.100.30
-        |              |
-        +------+-------+
-               |
-           lab.test
+                    Physical Host
+                   VMware Workstation
+                          |
+                 VMnet2 — Host-Only
+                  192.168.100.0/24
+                          |
+           +--------------+--------------+
+           |              |              |
+           v              v              v
+     +------------+ +------------+ +-------------+
+     |    DC01    | |    WS01    | |   SIEM01    |
+     |            | |            | |             |
+     | Windows    | | Windows 11 | | Ubuntu      |
+     | Server 2022| |            | | Server 24.04|
+     |            | | Wazuh Agent| |             |
+     | AD DS / DNS| | Sysmon     | | Wazuh SIEM   |
+     | Wazuh Agent| | PowerShell | | Manager      |
+     |            | | Logging    | | Dashboard    |
+     +------------+ +------------+ +-------------+
+           |              |              |
+     192.168.100.10 192.168.100.20 192.168.100.30
+           |              |
+           +------+-------+
+                  |
+               lab.test
 ```
 
 SIEM01 also used a separate VMware NAT adapter for internet connectivity during setup. The Windows lab systems communicated over the host-only network.
@@ -82,11 +96,11 @@ SIEM01 also used a separate VMware NAT adapter for internet connectivity during 
 | WS01 | Windows 11 | `192.168.100.20` | Domain-joined workstation, endpoint monitoring, simulated activity |
 | SIEM01 | Ubuntu Server 24.04 | `192.168.100.30` | Centralized Wazuh SIEM |
 
-**Domain:** `lab.test`
+**Active Directory Domain:** `lab.test`
 
 ### Additional Environment
 
-A Kali Linux virtual machine was also prepared for a future external-origin authentication simulation.
+A Kali Linux virtual machine was prepared for a future external-origin authentication simulation.
 
 Kali was connected to the isolated lab network, but the planned compromised-account scenario was not completed. It is not included among the validated investigations.
 
@@ -118,7 +132,7 @@ A dedicated Group Policy Object was created and linked to the Domain Controllers
 
 `SOC-Lab-DC-Security-Auditing`
 
-The following audit categories were enabled:
+The following audit subcategories were enabled:
 
 **Account Logon**
 
@@ -160,7 +174,7 @@ Sysmon telemetry was collected from:
 
 `Microsoft-Windows-Sysmon/Operational`
 
-A Wazuh agent configuration block was added:
+The following configuration block was added to the Wazuh agent's `ossec.conf` file:
 
 ```xml
 <localfile>
@@ -171,9 +185,13 @@ A Wazuh agent configuration block was added:
 
 Successful event collection was verified through Sysmon-based Wazuh alerts.
 
+For example, executing `net user` on WS01 generated a process-discovery-related alert through Wazuh Rule 92031.
+
+This demonstrated that Sysmon process telemetry was successfully collected and analyzed by the SIEM.
+
 ### 3. PowerShell Script Block Logging
 
-A separate GPO was created and linked to the Workstations organizational unit:
+A separate Group Policy Object was created and linked to the Workstations organizational unit:
 
 `SOC-Lab-Workstation-PowerShell-Logging`
 
@@ -229,9 +247,11 @@ Relevant events included:
 
 Wazuh's built-in correlation rule successfully identified the repeated authentication failures and generated a Level 10 alert.
 
+The investigation demonstrated how a SIEM can correlate individual authentication events to identify a potentially suspicious pattern.
+
 **Result:** Successful detection of a controlled brute-force authentication pattern.
 
-[Read Investigation 01](investigations/investigation-01-brute-force-detection.md)
+**[Read Investigation 01 — Brute-Force Authentication Detection](investigations/investigation-01-brute-force-detection.md)**
 
 ---
 
@@ -251,17 +271,25 @@ Get-Process | Out-Null; Get-Service | Out-Null; Get-LocalUser
 
 The command enumerated running processes, Windows services, and local user accounts without modifying the system.
 
-PowerShell Script Block Logging recorded the complete command as Windows Event ID 4104.
+PowerShell Script Block Logging recorded the executed command as Windows Event ID 4104.
 
 Wazuh collected the event, matched the process-discovery behavior, and generated a Level 4 alert.
+
+### Detection Evidence
+
+![Wazuh Rule 91815 — PowerShell Process Discovery](screenshots/investigation-02/wazuh-process-discovery-alert.png)
+
+*Wazuh Rule 91815 identified PowerShell process-discovery activity. The alert included the executed command in the scriptBlockText field and mapped the behavior to MITRE ATT&CK T1057 — Process Discovery.*
 
 The complete command was visible in the Wazuh field:
 
 `data.win.eventdata.scriptBlockText`
 
+This demonstrated the value of PowerShell Script Block Logging for investigating commands executed within an active PowerShell session.
+
 **Result:** Successful detection of PowerShell process-discovery behavior.
 
-[Read Investigation 02](investigations/investigation-02-powershell-process-discovery.md)
+**[Read Investigation 02 — PowerShell Process Discovery Detection](investigations/investigation-02-powershell-process-discovery.md)**
 
 ---
 
@@ -273,13 +301,13 @@ The complete command was visible in the Wazuh field:
 
 Two administrative security scenarios were performed on DC01.
 
-**Scenario A — Account Status Changes**
+#### Scenario A — Account Status Changes
 
 The domain account `LAB\rpatel` was temporarily disabled and then re-enabled.
 
 Windows Security events confirmed the changes, and Wazuh identified the affected account and administrator responsible.
 
-**Scenario B — Security Group Modifications**
+#### Scenario B — Security Group Modifications
 
 A dedicated security-enabled global group named `SOC-Lab-Privileged-Test` was created.
 
@@ -302,9 +330,11 @@ All five primary test events were successfully detected in Wazuh.
 
 The test account was restored to its original enabled state, and the test group's membership was verified as empty.
 
+The investigation demonstrated how account and group auditing can help identify potentially unauthorized changes in an Active Directory environment.
+
 **Result:** Successful monitoring of Active Directory account changes and security group modifications.
 
-[Read Investigation 03](investigations/investigation-03-active-directory-account-management.md)
+**[Read Investigation 03 — Active Directory Account and Security Group Modification](investigations/investigation-03-active-directory-account-management.md)**
 
 ---
 
@@ -374,6 +404,14 @@ Several legitimate administrative activities generated security alerts.
 
 The investigations reinforced the need to examine the underlying event fields, establish authorization, and correlate related activity before determining whether an incident is malicious.
 
+### Built-In Detection Rules Require Validation
+
+The project used Wazuh's existing detection rules rather than developing new ones.
+
+Each investigation tested whether the expected activity generated the corresponding alert.
+
+This reinforced the importance of validating detection coverage rather than assuming that an installed SIEM automatically identifies every security-relevant event.
+
 ---
 
 ## Challenges and Lessons Learned
@@ -401,6 +439,12 @@ Detection validation required identifying the correct Wazuh rules and confirming
 Dedicated GPOs were used for domain controller security auditing and workstation PowerShell logging.
 
 The resulting settings were verified using `auditpol`, `gpupdate`, and `gpresult`.
+
+### Distinguishing Detection from Compromise
+
+The simulations generated real security alerts, but the detected activities were intentionally performed by an authorized administrator.
+
+The investigations reinforced the difference between identifying security-relevant behavior and confirming a malicious security incident.
 
 ---
 
